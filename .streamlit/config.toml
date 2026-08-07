@@ -1,0 +1,20 @@
+# Streamlit theme — ams OSRAM brand colours.
+#
+# primaryColor drives EVERY accent in the UI: selection borders, focus rings,
+# slider handles, radio/checkbox fills, links and the running indicator.
+# Streamlit's default is a red (#FF4B4B) that reads as an error state when it
+# lands on a focused dropdown, which is why selections looked "wrong".
+#
+# #FD5000 is sampled from logo.png (the dominant opaque orange, 77k pixels),
+# not eyeballed — so the UI accent matches the wordmark exactly.
+[theme]
+primaryColor = "#FD5000"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F5F7"
+textColor = "#26292E"
+font = "sans serif"
+
+[server]
+# Keep the corpus watcher quiet: re-running on every data file touch would
+# retrigger a ~90s re-index mid-demo.
+fileWatcherType = "auto"

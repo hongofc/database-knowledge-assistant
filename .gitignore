@@ -1,0 +1,32 @@
+# Secrets — never commit your real keys
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Vector store (if you enable persistent ChromaDB)
+.chroma/
+
+# Chat history — contains real conversation transcripts, keep it local
+.sessions.db
+*.sessions.db
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Copilot login artefacts (never commit tokens)
+.copilot_token
+.copilot_flow.json
+
+# Internal brand reference - never publish
+amsOSRAM_Brand-Guideline.pdf
+*Brand-Guideline*.pdf

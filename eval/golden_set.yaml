@@ -1,0 +1,97 @@
+# Golden evaluation set for retrieval quality.
+#
+# Each case names a question and the document that MUST be retrieved to answer
+# it. `expect_source` is matched as a substring of the chunk source, and the
+# optional `expect_text` must appear in at least one retrieved chunk (this is
+# what catches a chunker that severs a table row from its meaning).
+#
+# `abstain: true` cases are adversarial — nothing in the corpus answers them,
+# so a correct system must refuse rather than invent an answer.
+
+cases:
+  - id: e204_meaning
+    question: What does alarm code E-204 mean on the CNC mill?
+    role: maintenance
+    expect_source: error_code_reference.md
+    expect_text: "Spindle overload"
+
+  - id: e204_fix
+    question: How do I clear a spindle overload fault on the VMX-500?
+    role: maintenance
+    expect_source: cnc_mill_manual.md
+    expect_text: "lockout"
+
+  - id: e110_cause
+    question: What causes error E-110 and what should I check?
+    role: maintenance
+    expect_source: error_code_reference.md
+    expect_text: "E-110"
+
+  - id: conveyor_belt
+    question: The conveyor belt keeps slipping, what should I inspect?
+    role: maintenance
+    expect_source: conveyor_troubleshooting.md
+
+  - id: pm_schedule
+    question: How often should preventive maintenance be performed?
+    role: maintenance
+    expect_source: preventive_maintenance_schedule.pdf
+
+  - id: loto_steps
+    question: What are the lockout tagout steps before servicing a machine?
+    role: safety
+    expect_source: lockout_tagout_sop.md
+    expect_text: "isolat"
+
+  - id: ppe_required
+    question: What PPE do I need to wear on the production floor?
+    role: safety
+    expect_source: ppe_requirements.md
+
+  - id: chemical_spill
+    question: What do I do if there is a chemical spill?
+    role: safety
+    expect_source: chemical_safety.md
+
+  - id: emergency_evac
+    question: What is the emergency evacuation procedure?
+    role: safety
+    expect_source: emergency_procedures.pdf
+
+  - id: calibration_freq
+    question: How often must measuring instruments be calibrated?
+    role: quality
+    expect_source: calibration_procedure.md
+
+  - id: changeover
+    question: What are the steps for a product changeover?
+    role: quality
+    expect_source: changeover_sop.md
+
+  - id: nonconformance
+    question: How do I report a nonconforming part?
+    role: quality
+    expect_source: nonconformance
+
+  - id: inspection_criteria
+    question: What must I check on the first article after a setup or changeover?
+    role: quality
+    expect_source: inspection_checklist.pdf
+
+  - id: qc_sampling
+    question: What sampling plan is used for quality control?
+    role: quality
+    expect_source: quality_control_sop.md
+
+  # --- Adversarial: must abstain, not hallucinate -------------------------
+  - id: abstain_stock_price
+    question: What is the current share price of the company?
+    abstain: true
+
+  - id: abstain_unknown_code
+    question: What does alarm code Z-999 on the plasma cutter mean?
+    abstain: true
+
+  - id: abstain_hr
+    question: How many annual leave days am I entitled to?
+    abstain: true

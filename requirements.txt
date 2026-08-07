@@ -1,0 +1,32 @@
+# =============================================================================
+# Factory Knowledge — dependencies
+# =============================================================================
+# The CORE kit runs on the standard library alone (pure-Python BM25 retriever,
+# no-LLM fallback). The packages below unlock the upgrades described in the
+# README. Install what you need, when you need it.
+
+# --- Recommended starter set -------------------------------------------------
+PyYAML>=6.0            # read roles.yaml (falls back to built-in roles if absent)
+openai>=1.30.0         # LLM answers + embeddings (needs OPENAI_API_KEY)
+
+# --- Document formats (read the PDF/DOCX knowledge base) ---------------------
+# Without these, .pdf/.docx files are skipped with a notice; .md/.txt still work.
+pypdf>=4.0.0           # read PDF manuals and SOPs
+python-docx>=1.1.0     # read Word (.docx) documents and forms
+# Needed only to regenerate the sample PDFs (tools/generate_sample_docs.py):
+fpdf2>=2.7.0           # write PDF documents
+
+# --- Web UI (optional) -------------------------------------------------------
+streamlit>=1.33.0      # python -m streamlit run app.py
+
+# --- Vector RAG upgrade (optional, recommended for enterprise) --------------
+# Enable with RETRIEVER=vector in your .env after installing:
+chromadb>=0.5.0        # local vector database
+
+# --- Fully-local / free embeddings (optional, advanced) ---------------------
+# For confidential factory docs you may not want to send text to OpenAI.
+# sentence-transformers>=2.7.0
+
+# --- Tests (optional) --------------------------------------------------------
+pytest>=8.0.0
+openpyxl>=3.1        # read the DBA session workbook (.xlsx)
