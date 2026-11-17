@@ -11,7 +11,7 @@ import os
 
 import streamlit as st
 
-from factory_knowledge.config import settings
+from factory_knowledge.config import _default_min_score, settings
 from factory_knowledge.orchestrator import FactoryKnowledge
 from factory_knowledge.providers import (
     PROVIDER_ORDER,
@@ -51,6 +51,12 @@ def get_factory(strategy: str, retriever: str) -> FactoryKnowledge:
     cfg = copy.copy(settings)
     cfg.chunk_strategy = strategy
     cfg.retriever = retriever
+    # min_score was resolved once at import for the STARTUP retriever. BM25 and
+    # cosine are not on the same scale (BM25 ~0-16, cosine 0-1), so carrying the
+    # old floor across a retriever switch silently abstains on everything or
+    # nothing. Recompute unless the user pinned MIN_SCORE explicitly.
+    if not os.getenv("MIN_SCORE"):
+        cfg.min_score = _default_min_score(retriever)
     try:
         fk = FactoryKnowledge(cfg)
         fallback = ""

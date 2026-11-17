@@ -1,0 +1,158 @@
+[
+  {
+    "bucket": "grounded",
+    "q": "What does alarm code E-204 mean?",
+    "grounded": true,
+    "top_score": 0.6365,
+    "latency_s": 3.88,
+    "role": "Maintenance & Troubleshooting Assistant",
+    "sources": [
+      "data\\maintenance\\error_code_reference.md > Quick lookup table",
+      "data\\maintenance\\error_code_reference.md > E-410 \u2014 Door interlock open",
+      "data\\maintenance\\error_code_reference.md > E-204 \u2014 Spindle overload"
+    ]
+  },
+  {
+    "bucket": "grounded",
+    "q": "What PPE is required in the grinding area?",
+    "grounded": true,
+    "top_score": 0.7635,
+    "latency_s": 2.5,
+    "role": "Safety & Compliance Officer",
+    "sources": [
+      "data\\safety\\ppe_requirements.md > 2. PPE matrix",
+      "data\\safety\\ppe_requirements.md > 3. Hearing protection",
+      "data\\safety\\ppe_requirements.md > 5. Foot & body protection",
+      "data\\safety\\ppe_requirements.md > 1. General rules"
+    ]
+  },
+  {
+    "bucket": "grounded",
+    "q": "What are the lockout tagout steps?",
+    "grounded": true,
+    "top_score": 0.7857,
+    "latency_s": 3.68,
+    "role": "Safety & Compliance Officer",
+    "sources": [
+      "data\\safety\\lockout_tagout_sop.md > 3. The 6 steps",
+      "data\\safety\\lockout_tagout_sop.md > 4. Removing locks (restoring energy)",
+      "data\\safety\\lockout_tagout_sop.md > 6. If you find a machine locked out",
+      "data\\safety\\lockout_tagout_sop.md > SOP LOTO-01 \u2014 Lockout/Tagout (Control of Hazardous Energy)"
+    ]
+  },
+  {
+    "bucket": "grounded",
+    "q": "What is the chemical spill procedure?",
+    "grounded": true,
+    "top_score": 0.6779,
+    "latency_s": 5.14,
+    "role": "Safety & Compliance Officer",
+    "sources": [
+      "data\\safety\\chemical_safety.md > 4. Spill response (small spill, < 5 L)",
+      "data\\safety\\chemical_safety.md > 5. Large spill or any spill reaching a drain",
+      "data\\safety\\chemical_safety.md > 8. Escalation",
+      "data\\safety\\emergency_procedures.pdf (p.1)"
+    ]
+  },
+  {
+    "bucket": "grounded",
+    "q": "How often is preventive maintenance scheduled?",
+    "grounded": true,
+    "top_score": 0.6118,
+    "latency_s": 2.9,
+    "role": "Maintenance & Troubleshooting Assistant",
+    "sources": [
+      "data\\maintenance\\preventive_maintenance_schedule.pdf (p.1)"
+    ]
+  },
+  {
+    "bucket": "grounded",
+    "q": "What does the quality control SOP require for first article inspection?",
+    "grounded": true,
+    "top_score": 0.7454,
+    "latency_s": 3.94,
+    "role": "Quality & Operations Assistant",
+    "sources": [
+      "data\\quality\\quality_control_sop.md > 2. First-article inspection (FAI)",
+      "data\\quality\\quality_control_sop.md > SOP QC-01 \u2014 In-Process Quality Control",
+      "data\\quality\\inspection_checklist.pdf (p.1)",
+      "data\\quality\\changeover_sop.md > 4. Dry run & first article",
+      "data\\quality\\quality_control_sop.md > 1. Purpose"
+    ]
+  },
+  {
+    "bucket": "grounded",
+    "q": "What should I do when the conveyor belt is slipping?",
+    "grounded": true,
+    "top_score": 0.6666,
+    "latency_s": 2.62,
+    "role": "Maintenance & Troubleshooting Assistant",
+    "sources": [
+      "data\\maintenance\\conveyor_troubleshooting.md > 2. Belt slipping",
+      "data\\maintenance\\conveyor_troubleshooting.md > 1. Belt mistracking / drift (alarm C-101)"
+    ]
+  },
+  {
+    "bucket": "grounded",
+    "q": "What are the changeover steps between product variants?",
+    "grounded": false,
+    "top_score": 0.4725,
+    "latency_s": 0.37,
+    "role": "Quality & Operations Assistant",
+    "sources": []
+  },
+  {
+    "bucket": "abstain",
+    "q": "What does alarm code Z-999 mean?",
+    "grounded": false,
+    "top_score": 0.5575,
+    "latency_s": 0.3,
+    "role": "Maintenance & Troubleshooting Assistant",
+    "sources": []
+  },
+  {
+    "bucket": "abstain",
+    "q": "What is the CEO's salary?",
+    "grounded": false,
+    "top_score": 0.1729,
+    "latency_s": 0.33,
+    "role": "Maintenance & Troubleshooting Assistant",
+    "sources": []
+  },
+  {
+    "bucket": "abstain",
+    "q": "Who won the world cup in 2010?",
+    "grounded": false,
+    "top_score": 0.0994,
+    "latency_s": 0.35,
+    "role": "Maintenance & Troubleshooting Assistant",
+    "sources": []
+  },
+  {
+    "bucket": "abstain",
+    "q": "What is our 2027 headcount plan?",
+    "grounded": false,
+    "top_score": 0.2198,
+    "latency_s": 0.41,
+    "role": "Maintenance & Troubleshooting Assistant",
+    "sources": []
+  },
+  {
+    "bucket": "dba",
+    "q": "which database used the most CPU in total?",
+    "ok": false,
+    "latency_s": 0.03
+  },
+  {
+    "bucket": "dba",
+    "q": "which session blocks other sessions most often?",
+    "ok": false,
+    "latency_s": 0.0
+  },
+  {
+    "bucket": "dba",
+    "q": "what are the top 5 wait types?",
+    "ok": false,
+    "latency_s": 0.0
+  }
+]

@@ -10,6 +10,7 @@ and narrating the answer — the two things it is actually good at.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from factory_knowledge.providers import LLMProvider, Message, build_provider
@@ -34,6 +35,11 @@ Rules:
 - Answer exactly what was asked. Do NOT invent extra WHERE filters (status,
   wait type, time range) that the question did not mention.
 - Always add a LIMIT (<= 50) unless the question is a single aggregate.
+- SQLite has NO MEDIAN(), PERCENTILE_CONT() or STDDEV(). For a median, use:
+    SELECT <cols> FROM db_sessions ORDER BY <col>
+    LIMIT 1 OFFSET (SELECT COUNT(*) FROM db_sessions) / 2
+- duration is TEXT, so ORDER BY duration sorts alphabetically, not numerically.
+  Cast it first, e.g. ORDER BY CAST(duration AS INTEGER), and say so if asked.
 """
 
 _ANSWER_SYSTEM = """You are a SQL Server DBA assistant.
@@ -74,19 +80,42 @@ class DBAAnswer:
         return "\n".join(out)
 
 
-def _strip_fences(text: str) -> str:
-    """LLMs love markdown fences and preamble; the database wants bare SQL."""
+def _strip_fences(text: str, validate: "Callable[[str], bool] | None" = None) -> str:
+    """LLMs love markdown fences and preamble; the database wants bare SQL.
+
+    Picking the right statement start is subtler than it looks:
+
+    * Anchoring on the FIRST ``SELECT`` drags in prose ("I'll create a query
+      that..."), where words like "create" trip the safety guard.
+    * Anchoring on the LAST one truncates every query containing a subquery.
+      ``... LIMIT 1 OFFSET (SELECT COUNT(*) FROM db_sessions) / 2`` would be cut
+      down to ``SELECT COUNT(*) FROM db_sessions) / 2`` -> "near ')': syntax
+      error". That broke median, percentile and correlated-subquery questions.
+
+    So try every candidate start, earliest first, and keep the first one SQLite
+    agrees is a valid statement. `validate` is injected by the agent so this
+    function stays testable without a database; without it, fall back to a
+    parenthesis-balance check.
+    """
     text = re.sub(r"```(?:sql)?", "", text, flags=re.IGNORECASE).strip()
-    # Anchor on the LAST statement start, not the first. Models often preface
-    # the query with prose ("I'll create a query that..."), and capturing from
-    # the first match drags that prose in — where words like "create" then trip
-    # the safety guard and block a perfectly valid SELECT.
     matches = list(re.finditer(r"\b(?:WITH|SELECT)\b", text, re.IGNORECASE))
-    if matches:
-        text = text[matches[-1].start():]
-    # Drop any trailing prose after the statement.
-    text = text.split(";")[0]
-    return text.strip().rstrip(";").strip()
+    if not matches:
+        return text.strip().rstrip(";").strip()
+
+    def clean(start: int) -> str:
+        return text[start:].split(";")[0].strip().rstrip(";").strip()
+
+    def balanced(sql: str) -> bool:
+        return sql.count("(") == sql.count(")")
+
+    check = validate or balanced
+    for m in matches:
+        candidate = clean(m.start())
+        if candidate and check(candidate):
+            return candidate
+    # Nothing validated - fall back to the last start, which at least excludes
+    # leading prose, and let the caller surface the SQL error.
+    return clean(matches[-1].start())
 
 
 class DBAAgent:
@@ -100,6 +129,19 @@ class DBAAgent:
         # bogus status='running' filter and returned the wrong database).
         # Prefer a stronger model when one is reachable.
         self.provider = provider or self._best_provider()
+
+    def _is_valid_sql(self, sql: str) -> bool:
+        """Ask SQLite whether it can prepare this statement.
+
+        EXPLAIN compiles without executing, so a candidate is checked for real
+        rather than by counting brackets. Used to pick the right statement
+        start when the model emits a query containing subqueries.
+        """
+        try:
+            self.store.conn.execute(f"EXPLAIN {sql}")
+        except Exception:  # noqa: BLE001 - any prepare failure means "not this one"
+            return False
+        return True
 
     @staticmethod
     def _best_provider() -> LLMProvider:
@@ -120,7 +162,7 @@ class DBAAgent:
             Message(role="system", content=prompt),
             Message(role="user", content=question),
         ])
-        return _strip_fences(reply)
+        return _strip_fences(reply, validate=self._is_valid_sql)
 
     def explain(self, question: str, sql: str, headers, rows) -> str:
         table = "\n".join(

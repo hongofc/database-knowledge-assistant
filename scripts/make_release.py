@@ -36,6 +36,7 @@ SKIP_FILES = {
     ".sessions.db",                  # real chat transcripts
     "docs_starter_kit_README.md",    # starter-kit material, not accepted
     "package-lock.json",
+    "amsOSRAM_Brand-Guideline.pdf",  # internal brand doc - never publish
 }
 
 SKIP_SUFFIXES = {".pyc", ".pyo", ".log"}

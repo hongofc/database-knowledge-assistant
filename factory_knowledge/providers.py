@@ -18,6 +18,7 @@ Adding a provider = subclass + register in ``_REGISTRY``. Nothing else changes.
 
 from __future__ import annotations
 
+import inspect
 import json
 import os
 import urllib.error
@@ -26,6 +27,22 @@ from dataclasses import dataclass, field
 
 # Short timeout: availability probes must never hang the UI.
 _PROBE_TIMEOUT = 2.0
+# Remote APIs sit behind the corporate proxy and routinely need far longer than
+# a localhost probe. 2s was timing out on api.openai.com and being reported as
+# "key rejected", which sends you hunting a credential problem that isn't there.
+_REMOTE_PROBE_TIMEOUT = 12.0
+
+
+def _probe_error(exc: Exception, vendor: str) -> str:
+    """Describe a failed probe without blaming the key for a network timeout."""
+    text = str(exc)
+    if "timed out" in text.lower() or isinstance(exc, TimeoutError):
+        return f"{vendor} did not respond in {_REMOTE_PROBE_TIMEOUT:.0f}s (network/proxy, not the key)."
+    if "401" in text or "403" in text or "invalid" in text.lower():
+        return f"{vendor} key rejected: {text}"
+    return f"{vendor} unreachable: {text}"
+
+
 _CHAT_TIMEOUT = 120.0
 
 
@@ -218,9 +235,10 @@ class OpenAIProvider(LLMProvider):
             data = _http_json(
                 "https://api.openai.com/v1/models",
                 headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=_REMOTE_PROBE_TIMEOUT,
             )
         except Exception as exc:  # noqa: BLE001
-            return Availability(False, f"OpenAI key rejected: {exc}")
+            return Availability(False, _probe_error(exc, "OpenAI"))
         ids = [m.get("id", "") for m in data.get("data", [])]
         # Keep chat models only: the same list carries embeddings, whisper,
         # tts, dall-e and moderation models, none of which can answer a chat
@@ -277,9 +295,10 @@ class AnthropicProvider(LLMProvider):
                     "x-api-key": self.api_key,
                     "anthropic-version": "2023-06-01",
                 },
+                timeout=_REMOTE_PROBE_TIMEOUT,
             )
         except Exception as exc:  # noqa: BLE001
-            return Availability(False, f"Anthropic key rejected: {exc}")
+            return Availability(False, _probe_error(exc, "Anthropic"))
         ids = sorted(m.get("id", "") for m in data.get("data", []) if m.get("id"))
         return Availability(
             True,
@@ -300,14 +319,22 @@ class AnthropicProvider(LLMProvider):
             for m in messages
             if m.role in ("user", "assistant")
         ]
+        # anthropic 1.x removed the sampling knobs (temperature/top_p/top_k)
+        # from messages.create(); 0.x still accepts temperature. Pass it only
+        # when the installed SDK supports it so both versions work.
+        kwargs = {
+            "model": self.model,
+            "max_tokens": 2048,
+            "system": system or None,
+            "messages": convo,
+        }
         try:
-            resp = client.messages.create(
-                model=self.model,
-                max_tokens=2048,
-                temperature=self.temperature,
-                system=system or None,
-                messages=convo,
-            )
+            if "temperature" in inspect.signature(client.messages.create).parameters:
+                kwargs["temperature"] = self.temperature
+        except (TypeError, ValueError):  # signature unavailable - skip the knob
+            pass
+        try:
+            resp = client.messages.create(**kwargs)
         except Exception as exc:  # noqa: BLE001
             raise LLMError(f"Anthropic request failed: {exc}") from exc
         return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
@@ -367,6 +394,7 @@ class CopilotProvider(LLMProvider):
                 "Editor-Plugin-Version": "copilot-chat/0.22.4",
                 "User-Agent": "GitHubCopilotChat/0.22.4",
             },
+            timeout=_REMOTE_PROBE_TIMEOUT,
         )
         token = data.get("token")
         if not token:
@@ -393,6 +421,7 @@ class CopilotProvider(LLMProvider):
             data = _http_json(
                 f"{self._API}/models",
                 headers={"Authorization": f"Bearer {api_token}", **self._EDITOR_HEADERS},
+                timeout=_REMOTE_PROBE_TIMEOUT,
             )
         except Exception:  # noqa: BLE001 - fall back below
             return ["gpt-4o-mini"]
@@ -404,6 +433,14 @@ class CopilotProvider(LLMProvider):
             # Only chat-capable models; embeddings appear here too.
             caps = item.get("capabilities", {})
             if caps.get("type") and caps["type"] != "chat":
+                continue
+            # capabilities.type == "chat" is NOT sufficient: GitHub's newer
+            # reasoning models are typed "chat" but served only on /responses,
+            # and calling /chat/completions with one returns
+            #   400 'model "<id>" is not accessible via the /chat/completions endpoint'
+            # Trust supported_endpoints when present.
+            endpoints = item.get("supported_endpoints")
+            if endpoints is not None and "/chat/completions" not in endpoints:
                 continue
             out.append(mid)
         return out or ["gpt-4o-mini"]

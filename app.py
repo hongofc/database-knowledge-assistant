@@ -18,7 +18,7 @@ import os
 import streamlit as st
 
 from factory_knowledge.chunking import available_strategies
-from factory_knowledge.config import settings
+from factory_knowledge.config import SCORE_SCALES, _default_min_score, settings
 from factory_knowledge.providers import LLMError
 from ui_helpers import (
     PROVIDER_LABELS,
@@ -246,7 +246,16 @@ def render_sidebar(store):
             if settings.retriever in ("keyword", "vector", "hybrid") else 0,
             help="HOW those pieces are searched at question time.",
         )
-        st.caption(f"Abstain floor: `{settings.min_score}` (scaled to retriever)")
+        # settings.min_score is resolved once at import, so it reflects the
+        # STARTUP retriever. Recompute for whatever is selected now, otherwise
+        # the caption shows a floor from a different score scale.
+        _active_floor = (
+            float(os.environ["MIN_SCORE"])
+            if os.environ.get("MIN_SCORE")
+            else _default_min_score(retriever)
+        )
+        _scale = SCORE_SCALES.get(retriever, {}).get("scale", "")
+        st.caption(f"Abstain floor: `{_active_floor}` — {_scale}")
 
         with st.expander("ℹ️ What's the difference?"):
             st.markdown(

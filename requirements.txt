@@ -8,6 +8,7 @@
 # --- Recommended starter set -------------------------------------------------
 PyYAML>=6.0            # read roles.yaml (falls back to built-in roles if absent)
 openai>=1.30.0         # LLM answers + embeddings (needs OPENAI_API_KEY)
+anthropic>=0.40.0      # Claude provider (needs ANTHROPIC_API_KEY)
 
 # --- Document formats (read the PDF/DOCX knowledge base) ---------------------
 # Without these, .pdf/.docx files are skipped with a notice; .md/.txt still work.

@@ -27,6 +27,5 @@ Thumbs.db
 .copilot_token
 .copilot_flow.json
 
-# Internal brand reference - never publish
-amsOSRAM_Brand-Guideline.pdf
-*Brand-Guideline*.pdf
+# Capstone poster template (trainer-supplied, not ours to redistribute)
+poster_template.docx

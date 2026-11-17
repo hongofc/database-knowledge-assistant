@@ -62,7 +62,18 @@ def _default_min_score(retriever: str | None = None) -> float:
     just picked, instead of the one that happened to be set at import time.
     """
     retriever = (retriever or os.getenv("RETRIEVER", "keyword")).lower()
-    return {"keyword": 4.0, "vector": 0.68, "hybrid": 0.0}.get(retriever, 0.0)
+    if retriever == "vector":
+        # The cosine floor is a property of the EMBEDDING MODEL, not of the
+        # retriever: different models put grounded text at different absolute
+        # similarities. 0.68 was measured on Ollama nomic-embed-text; OpenAI
+        # text-embedding-3-small scores the same grounded chunks ~0.04-0.10
+        # lower, so reusing 0.68 there abstains on questions that ARE in the
+        # corpus (measured: "alarm code E-204" tops out at 0.637).
+        #   nomic-embed-text        grounded 0.64-0.85, adversarial 0.50-0.67 -> 0.68
+        #   text-embedding-3-small  grounded 0.61-0.79, adversarial 0.09-0.56 -> 0.60
+        model = os.getenv("EMBEDDING_MODEL", "").lower()
+        return 0.60 if model.startswith("text-embedding-3") else 0.68
+    return {"keyword": 4.0, "hybrid": 0.0}.get(retriever, 0.0)
 
 
 # Scoring scale of each retriever, for UI slider bounds and explanations.

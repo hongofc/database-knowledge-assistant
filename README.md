@@ -111,9 +111,9 @@ columns) loaded into an in-memory SQLite snapshot. Read-only whitelist, and
 every answer shows its SQL.
 
 ```bash
-.venv/Scripts/python.exe -m dba "which database used the most CPU?"
-.venv/Scripts/python.exe -m dba --schema        # inspect the table
-.venv/Scripts/python.exe -m dba --sql "SELECT ..."   # run raw SQL
+.venv/Scripts/python.exe -m dba --provider openai "which database used the most CPU?"
+.venv/Scripts/python.exe -m dba --schema        # inspect the table (no LLM)
+.venv/Scripts/python.exe -m dba --sql "SELECT ..."   # run raw SQL (no LLM)
 ```
 
 ### Multi-provider LLM routing
@@ -165,6 +165,10 @@ Category 4 (Agent / LangGraph) is deliberately **not** claimed.
 .venv/Scripts/python.exe tests/test_dba.py --llm --provider openai   # 46/46
 ```
 
+> These suites are **standalone scripts, not pytest modules**. Running
+> `pytest tests/test_dba.py` reports `fixture 'store' not found` — that is a
+> collection artefact, not a failure. Run them as shown above.
+
 The DBA suite is two-layered. The deterministic tests run in ~1s with no LLM
 and cover the SQL guard, schema, and known-answer aggregates. The `--llm` layer
 tests actual SQL generation and asserts on the **answer, not the SQL text** —
@@ -188,11 +192,22 @@ Copy `.env.example` to `.env`. Useful settings:
 | `MIN_SCORE` | *(auto)* | Blank picks a floor matched to the retriever's scale |
 | `TOP_K` | `5` | Chunks retrieved per question |
 
-`MIN_SCORE` defaults are scale-specific — **4.0** for BM25 (unbounded, ~0-16
-here) and **0.68** for cosine (0-1). A single fixed number cannot serve both:
-0.68 on BM25 would filter nothing at all.
+`MIN_SCORE` defaults are **scale- and embedding-model-specific**:
 
-Changing the chunking strategy or retriever triggers a **~90 second re-index**.
+| Retriever | Embedding model | Floor | Scale |
+|---|---|---|---|
+| `keyword` | n/a | **4.0** | BM25, unbounded (~0-16 here) |
+| `vector` | `text-embedding-3*` | **0.60** | cosine (0-1) |
+| `vector` | `nomic-embed-text` | **0.68** | cosine (0-1) |
+| `hybrid` | any | **0.0** | reciprocal-rank fusion |
+
+A single fixed number cannot serve these: 0.68 on BM25 would filter nothing at
+all. The embedding split matters just as much — OpenAI and Ollama embeddings put
+the *same correct chunk* at different cosine values, so reusing Ollama's 0.68
+under OpenAI embeddings makes the assistant refuse questions it can answer.
+
+Changing the chunking strategy or retriever triggers a **re-index (~57s
+measured, OpenAI embeddings)**.
 Do not change them mid-demo.
 
 ---
@@ -225,11 +240,11 @@ scripts/make_logo.py    Regenerate the sidebar wordmark
 
 | Member | Contribution |
 |---|---|
-|Sylvia Wong Shiau Ching|*Working prototype, RAG*|
-|Chin Ee Mei|*Evaluation*|
-|Khoo Yeong Kang|*Tool use, Deployment*|
-|Muhammad Muzzammil Bin Mohd Salahudin|*Memory , Multiple data sources*|
-|Phuah Hong|*Advanced Chunking, Local LLM*|
+| Sylvia Wong Shiau Ching | *(assign a feature)* |
+| Chin Ee Mei | *(assign a feature)* |
+| Khoo Yeong Kang | *(assign a feature)* |
+| Muhammad Muzzammil Bin Mohd Salahudin | *(assign a feature)* |
+| Phuah Hong | *(assign a feature)* |
 
 ### Feature areas available to assign
 
@@ -262,7 +277,7 @@ individual contributions must be presented on demo day.
 
 - **Text-to-SQL telemetry agent** — `dba/`
   - Natural language to SQL over 2,372 rows, read-only whitelist, shows its SQL
-  - Demo: `.venv/Scripts/python.exe -m dba "which database used the most CPU?"`
+  - Demo: `.venv/Scripts/python.exe -m dba --provider openai "which database used the most CPU?"`
   - *Covers categories 6 and 10*
 
 - **Multi-provider LLM routing** — `factory_knowledge/providers.py`
@@ -298,7 +313,16 @@ individual contributions must be presented on demo day.
 - Embeddings cannot distinguish near-identical codes: a plausible-but-fake code
   like `Z-999` scores similarly to a real `E-204`. The prompt-level guardrail is
   the backstop, and it is not perfect.
-- Grounded and adversarial score ranges **overlap** (cosine 0.643-0.847 vs
+- **One known false abstention.** "What are the changeover steps between product
+  variants?" scores 0.473 and is refused, even though
+  `data/quality/changeover_sop.md` contains a "Changeover steps" section. High
+  lexical overlap does not guarantee high embedding similarity. Refusing is the
+  safer failure, but it is a real miss, measured at 7/8 on in-corpus questions.
+- **The Dockerfile has not been build-tested.** It is provided for completeness;
+  the demo path is the local launcher.
+- Grounded and adversarial score ranges **overlap**. Measured on
+  `text-embedding-3-small`: grounded 0.473-0.786 vs adversarial 0.099-0.558;
+  on `nomic-embed-text`: grounded 0.643-0.847 vs
   0.50-0.673), so any abstain floor trades false-abstains against
   false-answers. There is no threshold that separates them cleanly.
 - The corpus is 16 fictional documents written for this exercise, not real
